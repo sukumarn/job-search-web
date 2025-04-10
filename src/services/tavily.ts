@@ -23,18 +23,33 @@ content: string;
  * @returns A promise that resolves to an array of TavilySearchResult objects.
  */
 export async function getSearchResults(query: string): Promise<TavilySearchResult[]> {
-  // TODO: Implement this by calling the Tavily API.
-
-  return [
-    {
-      title: 'Software Engineer - Java',
-      url: 'https://example.com/java-engineer',
-      content: 'This is a Java engineering position at Example Corp.'
-    },
-    {
-      title: 'Software Engineer - Python',
-      url: 'https://example.com/python-engineer',
-      content: 'This is a Python engineering position at Example Corp.'
+  try {
+    const apiKey = process.env.TAVILY_API_KEY;
+    if (!apiKey) {
+      throw new Error('TAVILY_API_KEY environment variable not set.');
     }
-  ];
+
+    const url = `https://api.tavily.com/search?q=${encodeURIComponent(query)}&api_key=${apiKey}`;
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`Tavily API request failed with status ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    if (!data || !data.results || !Array.isArray(data.results)) {
+      throw new Error('Invalid response format from Tavily API.');
+    }
+
+    return data.results.map((result: any) => ({
+      title: result.title || '',
+      url: result.url || '',
+      content: result.content || ''
+    }));
+
+  } catch (error) {
+    console.error('Error fetching search results from Tavily API:', error);
+    return [];
+  }
 }
